@@ -17,6 +17,9 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
+    watch: {
+      ignored: ["**/src/jobs.json"], // Dosyanın yolu burasıyla eşleşmeli
+    },
   },
   resolve: {
     alias: {

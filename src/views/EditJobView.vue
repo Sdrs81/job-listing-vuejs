@@ -1,11 +1,13 @@
 <script setup>
-import { reactive } from "vue";
-import axios from "axios";
-import { useRouter } from "vue-router";
+import router from "@/router";
+import { reactive, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import { useToast } from "vue-toastification";
+import axios from "axios";
 
-const router = useRouter();
-const toast = useToast();
+const route = useRoute();
+
+const jobId = route.params.id;
 
 const form = reactive({
   type: "Full-Time",
@@ -19,11 +21,17 @@ const form = reactive({
     contactEmail: "",
     contactPhone: "",
   },
-  contact: "",
 });
 
+const state = reactive({
+  job: {},
+  isLoading: true,
+});
+
+const toast = useToast();
+
 const handleSubmit = async () => {
-  const newJob = {
+  const updatedJob = {
     title: form.title,
     type: form.type,
     location: form.location,
@@ -38,14 +46,35 @@ const handleSubmit = async () => {
   };
 
   try {
-    const response = await axios.post("/api/jobs", newJob);
-    toast.success("Job Added Successfully");
+    const response = await axios.put(`/api/jobs/${jobId}`, updatedJob);
+    toast.success("Job Updated Successfully");
     router.push(`/jobs/${response.data.id}`);
   } catch (error) {
-    console.error("Error adding job:", error);
-    toast.error("Failed to add job");
+    console.error("Error fetching job", error);
+    toast.error("Job Was Not Added");
   }
 };
+
+onMounted(async () => {
+  try {
+    const response = await axios.get(`/api/jobs/${jobId}`);
+    state.job = response.data;
+    // Populate inputs
+    form.type = state.job.type;
+    form.title = state.job.title;
+    form.description = state.job.description;
+    form.salary = state.job.salary;
+    form.location = state.job.location;
+    form.company.name = state.job.company.name;
+    form.company.description = state.job.company.description;
+    form.company.contactEmail = state.job.company.contactEmail;
+    form.company.contactPhone = state.job.company.contactPhone;
+  } catch (error) {
+    console.error("Error fetching job", error);
+  } finally {
+    state.isLoading = false;
+  }
+});
 </script>
 
 <template>
@@ -55,7 +84,7 @@ const handleSubmit = async () => {
         class="bg-white px-6 py-8 mb-4 shadow-md rounded-md border m-4 md:m-0"
       >
         <form @submit.prevent="handleSubmit">
-          <h2 class="text-3xl text-center font-semibold mb-6">Add Job</h2>
+          <h2 class="text-3xl text-center font-semibold mb-6">Edit Job</h2>
 
           <div class="mb-4">
             <label for="type" class="block text-gray-700 font-bold mb-2"
@@ -81,9 +110,9 @@ const handleSubmit = async () => {
             >
             <input
               type="text"
+              v-model="form.title"
               id="name"
               name="name"
-              v-model="form.title"
               class="border rounded w-full py-2 px-3 mb-2"
               placeholder="eg. Beautiful Apartment In Miami"
               required
@@ -115,15 +144,15 @@ const handleSubmit = async () => {
               required
             >
               <option value="Under $50K">under $50K</option>
-              <option value="$50 - 60K">$50 - $60K</option>
-              <option value="$60 - 70K">$60 - $70K</option>
-              <option value="$70 - 80K">$70 - $80K</option>
-              <option value="$80 - 90K">$80 - $90K</option>
-              <option value="$90 - 100K">$90 - $100K</option>
-              <option value="$100 - 125K">$100 - $125K</option>
-              <option value="$125 - 150K">$125 - $150K</option>
-              <option value="$150 - 175K">$150 - $175K</option>
-              <option value="$175 - 200K">$175 - $200K</option>
+              <option value="$50K - $60K">$50 - $60K</option>
+              <option value="$60K - $70K">$60 - $70K</option>
+              <option value="$70K - $80K">$70 - $80K</option>
+              <option value="$80K - $90K">$80 - $90K</option>
+              <option value="$90K - $100K">$90 - $100K</option>
+              <option value="$100K - $125K">$100 - $125K</option>
+              <option value="$125K - $150K">$125 - $150K</option>
+              <option value="$150K - $175K">$150 - $175K</option>
+              <option value="$175K - $200K">$175 - $200K</option>
               <option value="Over $200K">Over $200K</option>
             </select>
           </div>
@@ -132,8 +161,8 @@ const handleSubmit = async () => {
             <label class="block text-gray-700 font-bold mb-2"> Location </label>
             <input
               type="text"
-              id="location"
               v-model="form.location"
+              id="location"
               name="location"
               class="border rounded w-full py-2 px-3 mb-2"
               placeholder="Company Location"
@@ -149,8 +178,8 @@ const handleSubmit = async () => {
             >
             <input
               type="text"
-              id="company"
               v-model="form.company.name"
+              id="company"
               name="company"
               class="border rounded w-full py-2 px-3"
               placeholder="Company Name"
@@ -181,8 +210,8 @@ const handleSubmit = async () => {
             >
             <input
               type="email"
-              id="contact_email"
               v-model="form.company.contactEmail"
+              id="contact_email"
               name="contact_email"
               class="border rounded w-full py-2 px-3"
               placeholder="Email address for applicants"
@@ -197,8 +226,8 @@ const handleSubmit = async () => {
             >
             <input
               type="tel"
-              id="contact_phone"
               v-model="form.company.contactPhone"
+              id="contact_phone"
               name="contact_phone"
               class="border rounded w-full py-2 px-3"
               placeholder="Optional phone for applicants"
@@ -210,7 +239,7 @@ const handleSubmit = async () => {
               class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline"
               type="submit"
             >
-              Add Job
+              Update Job
             </button>
           </div>
         </form>
